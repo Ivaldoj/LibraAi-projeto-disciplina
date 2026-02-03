@@ -41,15 +41,15 @@ HISTORY_N = 12                     # buffer do voto
 STABLE_RATIO = 0.50                # >=50% no voto para considerar estável
 MIN_CONF = 0.40                    # confiança mínima (se modelo suportar proba)
 
-ROUND_SECONDS_EASY = 10.0          # tempo por letra no EASY
-ROUND_SECONDS_HARD = 6.0           # tempo por letra no HARD
-COOLDOWN_NEXT = 0.4                # evita avanço repetido
+ROUND_SECONDS_EASY = 15.0          # tempo por letra no EASY
+ROUND_SECONDS_HARD = 9.0           # tempo por letra no HARD
+COOLDOWN_NEXT = 0.7                # evita avanço repetido
 
 REF_BOX_W = 400                    # tamanho max da imagem de referência
 REF_BOX_H = 250
 
 #  CONFIG DO FLASH pra dar dopamina apos acertar
-FLASH_DURATION_MS = 90            # duração de cada piscada (ms)
+FLASH_DURATION_MS = 70            # duração de cada piscada (ms)
 FLASH_COLOR = "#00FF00"            # verde neon
 FLASH_ALPHA = 0.4                  # intensidade do overlay (0-1)
 
