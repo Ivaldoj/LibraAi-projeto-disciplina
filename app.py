@@ -1,10 +1,3 @@
-"""
-LibrAI — app.py INTEGRADO com pipeline dinâmico (GRU).
-
-Baseado na versão ATUAL do app.py (UI escura com widgets customizados).
-Todas as linhas novas estão marcadas com # 🆕 DYNAMIC
-"""
-
 import os
 import time
 import random
@@ -23,9 +16,6 @@ from mediapipe.tasks.python import vision
 
 import pygame
 pygame.mixer.init()
-
-# 🆕 DYNAMIC — importar preditor dinâmico
-from dynamic_predict import DynamicPredictor, extract_dynamic_features  # 🆕 DYNAMIC
 
 
 ALLOWED_LETTERS = ["A","B","C","D","E","F","G","I","L","M","N","O","P","Q","R","S","T","U","V","W"]
@@ -60,10 +50,6 @@ FLASH_COLOR = "#00FF7F"
 FLASH_ALPHA = 0.4
 
 FORCE_ALLOWED_CLASSES = ["A","B","C","D","E","F","G","I","L","M","N","O","P","Q","R","S","T","U","V","W"]
-
-# 🆕 DYNAMIC — config do detector de movimento
-MOVEMENT_THRESHOLD = 0.15                                                  # 🆕 DYNAMIC
-DYNAMIC_LETTERS_SET = {"H", "K", "Q", "P", "G", "F", "T"}                 # 🆕 DYNAMIC
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASK_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
@@ -164,17 +150,19 @@ class DarkButton(tk.Canvas):
         self.delete("all")
         bg, fg, border = self._get_colors()
         r = 6
-        w, h = self._btn_w, self._btn_h
+        w, h = self._btn_w, self._btn_h        # rounded rect
         self.create_arc(0, 0, r*2, r*2, start=90, extent=90, fill=bg, outline=border)
         self.create_arc(w-r*2, 0, w, r*2, start=0, extent=90, fill=bg, outline=border)
         self.create_arc(0, h-r*2, r*2, h, start=180, extent=90, fill=bg, outline=border)
         self.create_arc(w-r*2, h-r*2, w, h, start=270, extent=90, fill=bg, outline=border)
         self.create_rectangle(r, 0, w-r, h, fill=bg, outline=bg)
         self.create_rectangle(0, r, w, h-r, fill=bg, outline=bg)
+        # border lines
         self.create_line(r, 0, w-r, 0, fill=border)
         self.create_line(r, h, w-r, h, fill=border)
         self.create_line(0, r, 0, h-r, fill=border)
         self.create_line(w, r, w, h-r, fill=border)
+        # label
         self.create_text(w//2, h//2, text=self._text, fill=fg,
                          font=("Consolas", 10, "bold"))
 
@@ -273,12 +261,6 @@ class LibrAIApp(tk.Tk):
             self.allowed = [c for c in FORCE_ALLOWED_CLASSES if c in self.model_classes]
             if not self.allowed:
                 raise RuntimeError("as classes permitidas nao batem com a classe do modelo")
-
-        # 🆕 DYNAMIC — carregar preditor dinâmico (GRU)
-        self.dynamic_predictor = DynamicPredictor()                        # 🆕 DYNAMIC
-        self.last_features_dynamic = None                                  # 🆕 DYNAMIC
-        self.dynamic_pred_text = ""                                        # 🆕 DYNAMIC
-        self.use_dynamic = False                                           # 🆕 DYNAMIC
 
         # camera
         api = cv2.CAP_DSHOW if USE_CAP_DSHOW else 0
@@ -481,16 +463,6 @@ class LibrAIApp(tk.Tk):
         tk.Label(det_row, textvariable=self.pred_var, fg=ACCENT2, bg=BG_CARD,
                  font=("Consolas", 10)).pack(side="left", padx=(8, 0))
 
-        # 🆕 DYNAMIC — linha de info do pipeline dinâmico
-        dyn_row = tk.Frame(target_inner, bg=BG_CARD)                      # 🆕 DYNAMIC
-        dyn_row.pack(fill="x", pady=(6, 0))                               # 🆕 DYNAMIC
-        tk.Label(dyn_row, text="DINÂMICO:", fg=TEXT_DIM, bg=BG_CARD,      # 🆕 DYNAMIC
-                 font=("Consolas", 8, "bold")).pack(side="left")           # 🆕 DYNAMIC
-        self.dynamic_var = tk.StringVar(value="—")                         # 🆕 DYNAMIC
-        tk.Label(dyn_row, textvariable=self.dynamic_var, fg=SUCCESS,       # 🆕 DYNAMIC
-                 bg=BG_CARD, font=("Consolas", 9)).pack(                   # 🆕 DYNAMIC
-                     side="left", padx=(8, 0))                             # 🆕 DYNAMIC
-
         # ── TIMER ──
         timer_section = tk.Frame(inner, bg=BG_PANEL)
         timer_section.pack(fill="x", pady=(0, 10))
@@ -635,8 +607,6 @@ class LibrAIApp(tk.Tk):
         self.score_var.set("0")
         self.history.clear()
         self.hard_pos = 0
-        if self.dynamic_predictor.loaded:                                  # 🆕 DYNAMIC
-            self.dynamic_predictor.clear()                                 # 🆕 DYNAMIC
         self._next_round()
 
     def reset_game(self):
@@ -647,9 +617,6 @@ class LibrAIApp(tk.Tk):
         self.target_letter = None
         self.hard_pos = 0
         self.history.clear()
-        if self.dynamic_predictor.loaded:                                  # 🆕 DYNAMIC
-            self.dynamic_predictor.clear()                                 # 🆕 DYNAMIC
-        self.dynamic_var.set("—")                                          # 🆕 DYNAMIC
         self.score_var.set("0")
         self.pred_var.set("—")
         self.status_var.set("Pressione Start para jogar.")
@@ -765,22 +732,6 @@ class LibrAIApp(tk.Tk):
             color = DANGER
         self.timer_canvas.itemconfig(self.timer_rect, fill=color)
 
-    # ═══════════════════════════════════════════════════════════════
-    # 🆕 DYNAMIC — detectar movimento da mão entre frames
-    # ═══════════════════════════════════════════════════════════════
-    def _detect_movement(self, current_features):                          # 🆕 DYNAMIC
-        """
-        Compara features atuais com as do frame anterior.
-        Retorna magnitude do movimento.
-        """
-        if self.last_features_dynamic is None:
-            self.last_features_dynamic = current_features
-            return 0.0
-
-        movement = np.linalg.norm(current_features - self.last_features_dynamic)
-        self.last_features_dynamic = current_features
-        return movement
-
     # ─────────────────────────────────────────
     # MAIN LOOP
     # ─────────────────────────────────────────
@@ -804,7 +755,6 @@ class LibrAIApp(tk.Tk):
                     y = int(lm.y * h)
                     cv2.circle(frame, (x, y), 3, (0, 255, 128), -1)
 
-                # ── Pipeline ESTÁTICO (inalterado) ──
                 feats = extract_features(hand_landmarks).reshape(1, -1)
                 predicted = None
                 if hasattr(self.model, "predict_proba"):
@@ -819,55 +769,10 @@ class LibrAIApp(tk.Tk):
                     self.history.append(predicted)
 
                 voted, ratio = majority_vote(self.history)
-
-                # ═══════════════════════════════════════════════════════
-                # 🆕 DYNAMIC — pipeline paralelo
-                # ═══════════════════════════════════════════════════════
-                if self.dynamic_predictor.loaded:                          # 🆕 DYNAMIC
-                    # Extrair features dinâmicas (63-dim com z)
-                    dyn_feats = extract_dynamic_features(hand_landmarks)    # 🆕 DYNAMIC
-
-                    # Detectar movimento
-                    movement = self._detect_movement(dyn_feats)            # 🆕 DYNAMIC
-                    self.use_dynamic = movement > MOVEMENT_THRESHOLD       # 🆕 DYNAMIC
-
-                    # Alimentar buffer do GRU sempre
-                    self.dynamic_predictor.feed(hand_landmarks)            # 🆕 DYNAMIC
-
-                    # Predizer quando buffer está cheio
-                    dyn_result = self.dynamic_predictor.predict()           # 🆕 DYNAMIC
-                    if dyn_result:                                         # 🆕 DYNAMIC
-                        dyn_cls, dyn_conf = dyn_result                    # 🆕 DYNAMIC
-                        self.dynamic_pred_text = (                         # 🆕 DYNAMIC
-                            f"{dyn_cls} ({dyn_conf*100:.0f}%)")           # 🆕 DYNAMIC
-
-                        # Se detectou movimento E GRU prediz letra dinâmica,
-                        # sobrescrever a predição estática
-                        if (self.use_dynamic and                           # 🆕 DYNAMIC
-                                dyn_cls in DYNAMIC_LETTERS_SET):           # 🆕 DYNAMIC
-                            voted = dyn_cls                                # 🆕 DYNAMIC
-                            conf = dyn_conf                                # 🆕 DYNAMIC
-                            ratio = 1.0                                    # 🆕 DYNAMIC
-                            self.history.clear()                           # 🆕 DYNAMIC
-                            self.history.append(dyn_cls)                   # 🆕 DYNAMIC
-                    else:                                                  # 🆕 DYNAMIC
-                        prog = self.dynamic_predictor.buffer_progress()    # 🆕 DYNAMIC
-                        self.dynamic_pred_text = (                         # 🆕 DYNAMIC
-                            f"buffer {prog*100:.0f}%")                    # 🆕 DYNAMIC
-
-                    # Atualizar label dinâmico na UI
-                    pipe = "DYN" if self.use_dynamic else "STA"            # 🆕 DYNAMIC
-                    self.dynamic_var.set(                                   # 🆕 DYNAMIC
-                        f"[{pipe}] mov={movement:.2f} · "                  # 🆕 DYNAMIC
-                        f"{self.dynamic_pred_text}")                       # 🆕 DYNAMIC
-                # ═══════════════════════════════════════════════════════
-
             else:
                 if len(self.history) > 0:
                     self.history.popleft()
-                self.last_features_dynamic = None                          # 🆕 DYNAMIC
 
-            # ── GAME LOGIC (inalterada) ──
             if self.running and not self.game_over:
                 elapsed = time.time() - self.round_start
                 round_seconds = self._get_round_seconds()
