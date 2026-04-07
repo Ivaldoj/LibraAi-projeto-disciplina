@@ -1,16 +1,3 @@
-"""
-LibrAI — Módulo de inferência em tempo real para gestos dinâmicos.
-
-Mantém um buffer circular de frames (deque) e prediz quando o buffer está cheio.
-Pode ser importado pelo app.py ou executado standalone para teste.
-
-USO:
-    from dynamic_predict import DynamicPredictor
-    predictor = DynamicPredictor()
-    predictor.feed(hand_landmarks)   # alimentar a cada frame
-    result = predictor.predict()     # retorna (classe, confiança) ou None
-"""
-
 import os
 import numpy as np
 from collections import deque
