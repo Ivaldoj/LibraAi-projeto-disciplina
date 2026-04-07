@@ -51,7 +51,7 @@ def load_sequences():
         files = sorted(glob.glob(os.path.join(class_dir, "sample_*.npy")))
 
         if not files:
- print(f" Nenhuma amostra encontrada para '{letter}' pulando.")
+            print(f" Nenhuma amostra encontrada para '{letter}' pulando.")
             continue
 
         classes_found.append(letter)
@@ -264,7 +264,7 @@ def main():
     print(f"Matriz de confusão salva em: {cm_path}")
 
     plt.close("all")
- print("\n Treinamento concludo!")
+    print("\n Treinamento concludo!")
 
 
 if __name__ == "__main__":
